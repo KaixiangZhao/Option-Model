@@ -5,6 +5,8 @@ import datetime
 WARRANT_LIST = []
 STOCK_LIST = []
 
+R = 8.09e-5
+
 class Warrant:
     def __init__(self, code, target_stock, species, start_date, end_date,
                  price, portion, amount, everyday_price):
