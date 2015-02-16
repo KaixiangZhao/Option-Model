@@ -135,3 +135,7 @@ def print_stock_information():
 def print_stock_price():
     for i in STOCK_LIST:
         i.print_everyday_price()
+
+if __name__ == '__main__':
+    input_stock()
+    input_warrant()
