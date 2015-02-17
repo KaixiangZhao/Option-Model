@@ -1,8 +1,8 @@
 import math
 import numpy
-import scipy
+import scipy.stats
 import statistics
-from input import WARRANT_LIST, R
+from input import WARRANT_LIST, R, input_all
 
 def stock_cmp(stock1, stock2):
     return (stock1["Date"] - stock2["Date"]).days < 0
@@ -136,7 +136,7 @@ def calculate(warrant):
 
         for warrant_r in warrant.everyday_price:
             if (tempp["Date"] - warrant_r["Date"]).days == 0:
-                avg_bs.append(abs(tempp["price"] - warrant_r["price"]) / \
+                avg_bs.append(abs(tempp["price"] - warrant_r["price"]) /
                               warrant_r["price"])
 
         # calculate the NW model
@@ -153,7 +153,7 @@ def calculate(warrant):
 
         for warrant_r in warrant.everyday_price:
             if (tempp["Date"] - warrant_r["Date"]).days == 0:
-                avg_nw.append(abs(tempp["price"] - warrant_r["price"]) / \
+                avg_nw.append(abs(tempp["price"] - warrant_r["price"]) /
                               warrant_r["price"])
 
         # calculate the BSDA model result
@@ -167,7 +167,7 @@ def calculate(warrant):
 
         for warrant_r in warrant.everyday_price:
             if (tempp["Date"] - warrant_r["Date"]).days == 0:
-                avg_bsda.append(abs(tempp["price"] - warrant_r["price"]) \
+                avg_bsda.append(abs(tempp["price"] - warrant_r["price"])
                                 / warrant_r["price"])
 
         #calculate the Ukhov model result
@@ -181,7 +181,7 @@ def calculate(warrant):
 
         for warrant_r in warrant.everyday_price:
             if (tempp["Date"] - warrant_r["Date"]).days == 0:
-                avg_ukhov.append(abs(tempp["price"] - warrant_r["price"])\
+                avg_ukhov.append(abs(tempp["price"] - warrant_r["price"])
                                  / warrant_r["price"])
 
     avg = statistics.mean(avg_bs)
@@ -195,3 +195,15 @@ def calculate(warrant):
 
     avg = statistics.mean(avg_ukhov)
     print("{} \t {} \t {}".format("Ukhov", warrant.code, avg))
+
+    return (bs_result, nw_result, bsda_result, ukhov_result)
+
+def get_result(code):
+    for warrant in WARRANT_LIST:
+        if warrant.code == code:
+            return calculate(warrant)
+    print("No such warrant!\n")
+
+if __name__ == '__main__':
+    input_all()
+    get_result('031001')
