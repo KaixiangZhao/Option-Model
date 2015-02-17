@@ -34,8 +34,6 @@ def plot(warrant, bs_result, nw_result, bsda_result, ukhov_result):
     for i in warrant.everyday_price:
         real_plot.append(i["price"])
 
-    real_plot.reverse()
-
     real_plot.remove(real_plot[0])
 
     for i in range(len(real_plot)):

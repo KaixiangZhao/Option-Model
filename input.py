@@ -101,12 +101,14 @@ def input_warrant():
                    sheet_warrant.row_values(i + 1)[0]:
                     temp = {}
                     day_time = time.strptime(
-                        sheet_warrant_real.row_values(i + 3)[2],
+                        sheet_warrant_real.row_values(j + 3)[2],
                         "%Y-%m-%d")
                     temp["Date"] = datetime.datetime(
                         day_time[0], day_time[1], day_time[2])
-                    temp["price"] = sheet_warrant_real.row_values(i+3)[3]
+                    temp["price"] = sheet_warrant_real.row_values(j+3)[3]
                     everyday_price.append(temp)
+
+            everyday_price.reverse()
 
             for stock in STOCK_LIST:
                 if stock.code == sheet_warrant.row_values(i + 1)[2]:
