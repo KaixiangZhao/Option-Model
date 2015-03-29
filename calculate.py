@@ -19,6 +19,71 @@ def stock_sort(stocks):
                 stocks[mini] = stocks[i]
                 stocks[i] = temp
 
+def get_sigma(date, start_node, stock_match):
+    temp = []
+    for j in range(date - start_node, date):
+        temp.append(numpy.log(stock_match[j]["price"] / \
+                              stock_match[j - 1]["price"]))
+    return numpy.var(temp)**0.5
+
+def classify(warrant_list):
+    classify_list = []
+    for warrant in warrant_list:
+        temp = [[[]]*3]*6
+        for everyday_warrant in warrant.everyday_price:
+            for stock in warrant.target_stock.everyday_price:
+                if (everyday_warrant['Date'] - stock['Date']).days == 0:
+                    ratio = stock['price'] / warrant.price
+
+            if ratio < 0.94 and (warrant.end_date - everyday_warrant['Date']).days < 60:
+                temp[0][0].append(everyday_warrant['Date'])
+            elif ratio < 0.94 and (warrant.end_date - everyday_warrant['Date']).days >=60 and \
+                    (warrant.end_date - everyday_warrant['Date']).days <= 180:
+                temp[0][1].append(everyday_warrant['Date'])
+            elif ratio < 0.94 and (warrant.end_date - everyday_warrant['Date']).days > 180:
+                temp[0][2].append(everyday_warrant['Date'])
+            elif ratio >= 0.94 and ratio < 0.97 and (warrant.end_date - everyday_warrant['Date']).days < 60:
+                temp[1][0].append(everyday_warrant['Date'])
+            elif ratio >= 0.94 and ratio < 0.97 and (warrant.end_date - everyday_warrant['Date']).days >=60 and \
+                    (warrant.end_date - everyday_warrant['Date']).days <= 180:
+                temp[1][1].append(everyday_warrant['Date'])
+            elif ratio >= 0.94 and ratio < 0.97 and (warrant.end_date - everyday_warrant['Date']).days > 180:
+                temp[1][2].append(everyday_warrant['Date'])
+            elif ratio >= 0.97 and ratio < 1.00 and (warrant.end_date - everyday_warrant['Date']).days < 60:
+                temp[2][0].append(everyday_warrant['Date'])
+            elif ratio >= 0.97 and ratio < 1.00 and (warrant.end_date - everyday_warrant['Date']).days >=60 and \
+                    (warrant.end_date - everyday_warrant['Date']).days <= 180:
+                temp[2][1].append(everyday_warrant['Date'])
+            elif ratio >= 0.97 and ratio < 1.00 and (warrant.end_date - everyday_warrant['Date']).days > 180:
+                temp[2][2].append(everyday_warrant['Date'])
+            elif ratio >= 1.00 and ratio < 1.03 and (warrant.end_date - everyday_warrant['Date']).days < 60:
+                temp[3][0].append(everyday_warrant['Date'])
+            elif ratio >= 1.00 and ratio < 1.03 and (warrant.end_date - everyday_warrant['Date']).days >=60 and \
+                    (warrant.end_date - everyday_warrant['Date']).days <= 180:
+                temp[3][1].append(everyday_warrant['Date'])
+            elif ratio >= 1.00 and ratio < 1.03 and (warrant.end_date - everyday_warrant['Date']).days > 180:
+                temp[3][2].append(everyday_warrant['Date'])
+            elif ratio >= 1.03 and ratio < 1.06 and (warrant.end_date - everyday_warrant['Date']).days < 60:
+                temp[4][0].append(everyday_warrant['Date'])
+            elif ratio >= 1.03 and ratio < 1.06 and (warrant.end_date - everyday_warrant['Date']).days >=60 and \
+                    (warrant.end_date - everyday_warrant['Date']).days <= 180:
+                temp[4][1].append(everyday_warrant['Date'])
+            elif ratio >= 1.03 and ratio < 1.06 and (warrant.end_date - everyday_warrant['Date']).days > 180:
+                temp[4][2].append(everyday_warrant['Date'])
+            elif ratio >= 1.06 and (warrant.end_date - everyday_warrant['Date']).days < 60:
+                temp[5][0].append(everyday_warrant['Date'])
+            elif ratio >= 1.06 and (warrant.end_date - everyday_warrant['Date']).days >=60 and \
+                    (warrant.end_date - everyday_warrant['Date']).days <= 180:
+                temp[5][1].append(everyday_warrant['Date'])
+            elif ratio >= 1.06 and (warrant.end_date - everyday_warrant['Date']).days > 180:
+                temp[5][2].append(everyday_warrant['Date'])
+
+        tmp = {}
+        tmp[warrant.code] = temp
+        classify_list.append(tmp)
+
+    return classify_list
+
 def sub_bsda(s, x, t, r, d, ns, nw, sig, gama, w):
     sart = s * math.exp(-d * t) + w * nw / ns
     d_1 = (numpy.log(sart / x) + (r + sig**2 / 2) * t) / (sig * t**0.5)
@@ -113,11 +178,7 @@ def calculate(warrant):
             break
 
     for i in range(start_node + 1, len(stock_match)):
-        temp = []
-        for j in range(i - start_node, i):
-            temp.append(numpy.log(stock_match[j]["price"] / \
-                                  stock_match[j - 1]["price"]))
-            sigma = numpy.var(temp)**0.5
+        sigma = get_sigma(i, start_node, stock_match)
 
         t = (warrant.end_date - stock_match[i]["Date"]).days
         d_1 = (numpy.log(stock_match[i]["price"] / warrant.price) + \
@@ -207,3 +268,4 @@ def get_result(code):
 if __name__ == '__main__':
     input_all()
     get_result('031001')
+    print(classify(WARRANT_LIST)[0])
