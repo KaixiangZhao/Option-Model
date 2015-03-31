@@ -78,11 +78,11 @@ def plot_sigma(warrant):
     stock_sort(stock_match)
 
     for sigma in sigma_list:
-        t = (warrant.end_date - stock_match[1]["Date"]).days
-        d_1 = (numpy.log(stock_match[1]["price"] / warrant.price) + \
+        t = (warrant.end_date - stock_match[300]["Date"]).days
+        d_1 = (numpy.log(stock_match[300]["price"] / warrant.price) + \
                (R + 0.5 * sigma * sigma) * t) / (sigma * math.pow(t, 0.5))
         d_2 = d_1 - sigma * math.pow(t, 0.5)
-        result = stock_match[1]["price"] * scipy.stats.norm.cdf(d_1) \
+        result = stock_match[300]["price"] * scipy.stats.norm.cdf(d_1) \
                      - warrant.price * math.exp(-R * t) * \
                      scipy.stats.norm.cdf(d_2)
         result_list.append(result)
@@ -94,5 +94,5 @@ def plot_sigma(warrant):
 
 if __name__ == '__main__':
     input_all()
-    #get_plot('031001')
-    plot_sigma(WARRANT_LIST[0])
+    get_plot('031005')
+    #plot_sigma(WARRANT_LIST[0])
