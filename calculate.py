@@ -144,7 +144,7 @@ def calculate_sigma(warrant_list):
         stock_match = []
         for day in warrant.target_stock.everyday_price:
             if (day["Date"] - warrant.end_date).days < 0 and \
-               (warrant.start_date - day["Date"]).days <= 365:
+               (warrant.start_date - day["Date"]).days <= 0:
                 stock_match.append(day)
 
         stock_sort(stock_match)
@@ -154,24 +154,44 @@ def calculate_sigma(warrant_list):
                 start_node = i
                 break
 
+        # for i in range(start_node + 1, len(stock_match)):
+        #     for j in warrant.everyday_price:
+        #         if (j['Date'] - stock_match[i]['Date']).days == 0:
+        #             a = 0.0
+        #             b = 1.0
+        #
+        #             while True:
+        #                 t = (warrant.end_date - stock_match[i]["Date"]).days
+        #                 d_1 = (numpy.log(stock_match[i]["price"] / warrant.price) +
+        #                       (R + 0.5 * (b+a)/2 * (b+a)/2) * t) / ((b+a)/2 * math.pow(t, 0.5))
+        #                 d_2 = d_1 - (b+a)/2 * math.pow(t, 0.5)
+        #                 result = stock_match[i]["price"] * scipy.stats.norm.cdf(d_1) - \
+        #                          warrant.price * math.exp(-R * t) * scipy.stats.norm.cdf(d_2) - j['price']
+        #                 if abs(result) < 0.001 or abs(b - a) < 0.0001:
+        #                     break
+        #                 if result > 0:
+        #                     b = (b + a) / 2
+        #                 else:
+        #                     a = (b + a) / 2
+        #             j['sigma_bs'] = (b + a) / 2
+
         for i in range(start_node + 1, len(stock_match)):
             for j in warrant.everyday_price:
                 if (j['Date'] - stock_match[i]['Date']).days == 0:
-                    a = 0.0
-                    b = 5.0
-
-                    while(abs(b-a) > 0.0001):
+                    a = 1.0
+                    while True:
                         t = (warrant.end_date - stock_match[i]["Date"]).days
                         d_1 = (numpy.log(stock_match[i]["price"] / warrant.price) +
-                              (R + 0.5 * (b+a)/2 * (b+a)/2) * t) / ((b+a)/2 * math.pow(t, 0.5))
-                        d_2 = d_1 - (b+a)/2 * math.pow(t, 0.5)
+                              (R + 0.5 * a * a) * t) / (a * math.pow(t, 0.5))
+                        d_2 = d_1 - a * math.pow(t, 0.5)
                         result = stock_match[i]["price"] * scipy.stats.norm.cdf(d_1) - \
                                  warrant.price * math.exp(-R * t) * scipy.stats.norm.cdf(d_2) - j['price']
-                        if result > 0:
-                            b = (b + a) / 2
+                        if abs(result) > 0.001:
+                            break
                         else:
-                            a = (b + a) / 2
-                    j['sigma_bs'] = (b + a) / 2
+                            a -= 0.0001
+                    print(warrant.code, i)
+                    j['sigma_bs'] = a
 
 def sub_bsda(s, x, t, r, d, ns, nw, sig, gama, w):
     sart = s * math.exp(-d * t) + w * nw / ns
@@ -360,4 +380,4 @@ if __name__ == '__main__':
     #print(classify(WARRANT_LIST)[0])
     calculate_sigma(WARRANT_LIST)
     print_warrant_price()
-    print(convergence())
+    #print(convergence())
