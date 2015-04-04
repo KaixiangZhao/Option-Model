@@ -83,6 +83,9 @@ def input_warrant():
     excel_warrant_real = xlrd.open_workbook("Warrant_real.xls")
     sheet_warrant_real = excel_warrant_real.sheets()[0]
 
+    excel_impldvol = xlrd.open_workbook("CWR_Wrnt06.xls")
+    sheet_impldvol = excel_impldvol.sheets()[0]
+
     for i in range(len(sheet_warrant.col_values(0)) - 1):
         if sheet_warrant.row_values(i + 1)[4] == "E":
             if sheet_warrant.row_values(i + 1)[5] == "C":
@@ -97,20 +100,17 @@ def input_warrant():
                         amount = sheet_m.row_values(j + 3)[2]
 
                 everyday_price = []
-                for j in range(len(sheet_warrant_real.col_values(0)) - 3):
-                    if sheet_warrant_real.row_values(j + 3)[0] == \
-                       sheet_warrant.row_values(i + 1)[0]:
+                for j in range(len(sheet_impldvol.col_values(0)) - 1):
+                    if sheet_impldvol.row_values(j + 1)[0] == sheet_warrant.row_values(i + 1)[0]:
                         temp = {}
-                        day_time = time.strptime(
-                            sheet_warrant_real.row_values(j + 3)[2],
-                            "%Y-%m-%d")
-                        temp["Date"] = datetime.datetime(
-                            day_time[0], day_time[1], day_time[2])
-                        temp["price"] = sheet_warrant_real.row_values \
-                                        (j + 3)[3]
+                        day_time = time.strptime(sheet_impldvol.row_values(j + 1)[4], "%Y-%m-%d")
+                        temp["Date"] = datetime.datetime(day_time[0], day_time[1], day_time[2])
+                        temp["price"] = sheet_impldvol.row_values(j + 1)[5]
+                        temp["impldvol"] = sheet_impldvol.row_values(j + 1)[19]
+
                         everyday_price.append(temp)
 
-                everyday_price.reverse()
+                #everyday_price.reverse()
 
                 for stock in STOCK_LIST:
                     if stock.code == sheet_warrant.row_values(i + 1)[2]:
@@ -149,5 +149,5 @@ def input_all():
     input_warrant()
 
 if __name__ == '__main__':
-    input_stock()
-    input_warrant()
+    input_all()
+    print_warrant_price()
