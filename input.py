@@ -1,6 +1,7 @@
 import xlrd
 import time
 import datetime
+import json
 
 WARRANT_LIST = []
 STOCK_LIST = []
@@ -80,9 +81,6 @@ def input_warrant():
     excel_m = xlrd.open_workbook("M.xls")
     sheet_m = excel_m.sheets()[0]
 
-    excel_warrant_real = xlrd.open_workbook("Warrant_real.xls")
-    sheet_warrant_real = excel_warrant_real.sheets()[0]
-
     excel_impldvol = xlrd.open_workbook("CWR_Wrnt06.xls")
     sheet_impldvol = excel_impldvol.sheets()[0]
 
@@ -105,7 +103,7 @@ def input_warrant():
                         temp = {}
                         day_time = time.strptime(sheet_impldvol.row_values(j + 1)[4], "%Y-%m-%d")
                         temp["Date"] = datetime.datetime(day_time[0], day_time[1], day_time[2])
-                        temp["price"] = sheet_impldvol.row_values(j + 1)[5]
+                        temp["price"] = sheet_impldvol.row_values(j + 1)[18]
                         temp["impldvol"] = sheet_impldvol.row_values(j + 1)[19]
 
                         everyday_price.append(temp)
@@ -148,6 +146,17 @@ def input_all():
     input_stock()
     input_warrant()
 
+def output_warrant_list():
+    data_json = []
+    f = open('WARRANT_LIST.json', 'w')
+    for warrant in WARRANT_LIST:
+        temp = {}
+        temp[warrant.code] = warrant.everyday_price
+        data_json.append(temp)
+    f.write(json.dumps(data_json))
+    f.close()
+
 if __name__ == '__main__':
     input_all()
-    print_warrant_price()
+    #print_warrant_price()
+    output_warrant_list()
