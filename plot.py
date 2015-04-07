@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import pylab
 import numpy
 import math
 import scipy.stats
@@ -46,18 +47,20 @@ def plot(warrant, bs_result, nw_result, bsda_result, ukhov_result):
         ukhov_lag.append(abs(ukhov_plot[i] - real_plot[i]))
 
 
-#    plt.plot(range(len(real_plot)), real_plot, range(len(bs_plot)), bs_plot)
-    plt.plot(range(len(real_plot)), real_plot,
-             range(len(bs_plot)), bs_plot,
-             range(len(nw_plot)), nw_plot,
-             range(len(bsda_plot)), bsda_plot,
-             range(len(ukhov_plot)), ukhov_plot,
-             range(len(bs_lag)), bs_lag,
-             range(len(nw_lag)), nw_lag,
-             range(len(bsda_lag)), bsda_lag,
-             range(len(ukhov_lag)), ukhov_lag)
-    plt.ylabel("price")
-    plt.show()
+    pylab.plot(range(len(real_plot)), real_plot, color='blue', linewidth=1, linestyle='-', label='real')
+    pylab.plot(range(len(ukhov_plot)), ukhov_plot, color='green', linewidth=1, linestyle='-', label='bs')
+    # pylab.plot(range(len(real_plot)), real_plot,
+    #          range(len(bs_plot)), bs_plot,
+    #          range(len(nw_plot)), nw_plot,
+    #          range(len(bsda_plot)), bsda_plot,
+    #          range(len(ukhov_plot)), ukhov_plot,
+    #          range(len(bs_lag)), bs_lag,
+    #          range(len(nw_lag)), nw_lag,
+    #          range(len(bsda_lag)), bsda_lag,
+    #          range(len(ukhov_lag)), ukhov_lag)
+    pylab.ylabel("price")
+    pylab.legend(loc='upper left')
+    pylab.show()
 
 def get_plot(code):
     for warrant in WARRANT_LIST:
@@ -78,16 +81,16 @@ def plot_sigma(warrant):
     stock_sort(stock_match)
 
     for sigma in sigma_list:
-        t = (warrant.end_date - stock_match[2]["Date"]).days
-        d_1 = (numpy.log(stock_match[2]["price"] / warrant.price) + \
+        t = (warrant.end_date - stock_match[20]["Date"]).days
+        d_1 = (numpy.log(stock_match[20]["price"] / warrant.price) + \
                (R + 0.5 * sigma * sigma) * t) / (sigma * math.pow(t, 0.5))
         d_2 = d_1 - sigma * math.pow(t, 0.5)
-        result = stock_match[2]["price"] * scipy.stats.norm.cdf(d_1) \
+        result = stock_match[20]["price"] * scipy.stats.norm.cdf(d_1) \
                      - warrant.price * math.exp(-R * t) * \
                      scipy.stats.norm.cdf(d_2)
         result_list.append(result)
 
-    print(stock_match[2]["price"])
+    print(stock_match[20]["price"])
     print(result_list)
     plt.plot(sigma_list, result_list)
     plt.show()
@@ -95,5 +98,5 @@ def plot_sigma(warrant):
 
 if __name__ == '__main__':
     input_all()
-    #get_plot('031005')
-    plot_sigma(WARRANT_LIST[0])
+    get_plot('031005')
+    #plot_sigma(WARRANT_LIST[0])
