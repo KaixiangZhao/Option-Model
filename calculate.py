@@ -1,10 +1,17 @@
 import math
 import numpy
 import scipy.stats
+import scipy.optimize
 from input import WARRANT_LIST, R, input_all, print_warrant_price
+
+TOTAL_BS = []
+TOTAL_NW = []
+TOTAL_BSDA = []
+TOTAL_UKHOV = []
 
 def stock_cmp(stock1, stock2):
     return (stock1["Date"] - stock2["Date"]).days < 0
+
 
 def stock_sort(stocks):
     temp = {}
@@ -212,45 +219,6 @@ def calculate_sigma(warrant_list):
 
         stock_sort(stock_match)
 
-        # for i in range(start_node + 1, len(stock_match)):
-        #     for j in warrant.everyday_price:
-        #         if (j['Date'] - stock_match[i]['Date']).days == 0:
-        #             a = 0.0
-        #             b = 1.0
-        #
-        #             while True:
-        #                 t = (warrant.end_date - stock_match[i]["Date"]).days
-        #                 d_1 = (numpy.log(stock_match[i]["price"] / warrant.price) +
-        #                       (R + 0.5 * (b+a)/2 * (b+a)/2) * t) / ((b+a)/2 * math.pow(t, 0.5))
-        #                 d_2 = d_1 - (b+a)/2 * math.pow(t, 0.5)
-        #                 result = stock_match[i]["price"] * scipy.stats.norm.cdf(d_1) - \
-        #                          warrant.price * math.exp(-R * t) * scipy.stats.norm.cdf(d_2) - j['price']
-        #                 if abs(result) < 0.001 or abs(b - a) < 0.0001:
-        #                     break
-        #                 if result > 0:
-        #                     b = (b + a) / 2
-        #                 else:
-        #                     a = (b + a) / 2
-        #             j['sigma_bs'] = (b + a) / 2
-
-        for i in range(len(stock_match)):
-            for j in warrant.everyday_price:
-                if (j['Date'] - stock_match[i]['Date']).days == 0:
-                    a = 1.0
-                    while True:
-                        t = (warrant.end_date - stock_match[i]["Date"]).days
-                        d_1 = (numpy.log(stock_match[i]["price"] / warrant.price) +
-                              (R + 0.5 * a * a) * t) / (a * math.pow(t, 0.5))
-                        d_2 = d_1 - a * math.pow(t, 0.5)
-                        result = stock_match[i]["price"] * scipy.stats.norm.cdf(d_1) - \
-                                 warrant.price * math.exp(-R * t) * scipy.stats.norm.cdf(d_2) - j['price']
-                        if abs(result) > 0.001:
-                            break
-                        else:
-                            a -= 0.001
-                    print(warrant.code, i)
-                    j['sigma_bs'] = a
-
 def sub_bsda(s, x, t, r, d, ns, nw, sig, gama, w):
     sart = s * math.exp(-d * t) + w * nw / ns
     d_1 = (numpy.log(sart / x) + (r + sig**2 / 2) * t) / (sig * t**0.5)
@@ -345,8 +313,8 @@ def calculate(warrant):
             break
 
     for i in range(start_node + 1, len(stock_match)):
-        sigma = get_sigma(i, start_node, stock_match)
-        #sigma = get_sigma_impldvol(i, stock_match, warrant)
+        #sigma = get_sigma(i, start_node, stock_match)
+        sigma = get_sigma_impldvol(i, stock_match, warrant)
 
         t = (warrant.end_date - stock_match[i]["Date"]).days
         d_1 = (numpy.log(stock_match[i]["price"] / warrant.price) + \
@@ -365,8 +333,7 @@ def calculate(warrant):
 
         for warrant_r in warrant.everyday_price:
             if (tempp["Date"] - warrant_r["Date"]).days == 0:
-                avg_bs.append(abs(tempp["price"] - warrant_r["price"]) /
-                              warrant_r["price"])
+                avg_bs.append(abs(tempp["price"] - warrant_r["price"]) / warrant_r["price"])
 
         # calculate the NW model
         m = warrant.amount
@@ -382,8 +349,7 @@ def calculate(warrant):
 
         for warrant_r in warrant.everyday_price:
             if (tempp["Date"] - warrant_r["Date"]).days == 0:
-                avg_nw.append(abs(tempp["price"] - warrant_r["price"]) /
-                              warrant_r["price"])
+                avg_nw.append(abs(tempp["price"] - warrant_r["price"]) / warrant_r["price"])
 
         # calculate the BSDA model result
         if warrant.species == "C":
@@ -396,8 +362,7 @@ def calculate(warrant):
 
         for warrant_r in warrant.everyday_price:
             if (tempp["Date"] - warrant_r["Date"]).days == 0:
-                avg_bsda.append(abs(tempp["price"] - warrant_r["price"])
-                                / warrant_r["price"])
+                avg_bsda.append(abs(tempp["price"] - warrant_r["price"]) / warrant_r["price"])
 
         #calculate the Ukhov model result
         if warrant.species == "C":
@@ -410,20 +375,25 @@ def calculate(warrant):
 
         for warrant_r in warrant.everyday_price:
             if (tempp["Date"] - warrant_r["Date"]).days == 0:
-                avg_ukhov.append(abs(tempp["price"] - warrant_r["price"])
-                                 / warrant_r["price"])
+                avg_ukhov.append(abs(tempp["price"] - warrant_r["price"]) / warrant_r["price"])
 
-    avg = numpy.mean(avg_bs)
-    print("{} \t {} \t {}".format("BS", warrant.code, avg))
+    TOTAL_BS.extend(avg_bs)
+    TOTAL_NW.extend(avg_nw)
+    TOTAL_BSDA.extend(avg_bsda)
+    TOTAL_UKHOV.extend(avg_ukhov)
 
-    avg = numpy.mean(avg_nw)
-    print("{} \t {} \t {}".format("NW", warrant.code, avg))
 
-    avg = numpy.mean(avg_bsda)
-    print("{} \t {} \t {}".format("BSDA", warrant.code, avg))
+    mean_bs = numpy.mean(avg_bs)
+    mean_nw = numpy.mean(avg_nw)
+    mean_bsda = numpy.mean(avg_bsda)
+    mean_ukhov = numpy.mean(avg_ukhov)
+    std_bs = numpy.std(avg_bs)
+    std_nw = numpy.std(avg_nw)
+    std_bsda = numpy.std(avg_bsda)
+    std_ukhov = numpy.std(avg_ukhov)
 
-    avg = numpy.mean(avg_ukhov)
-    print("{} \t {} \t {}".format("Ukhov", warrant.code, avg))
+    print(warrant.code, len(warrant.everyday_price),
+          mean_bs, std_bs, mean_nw, std_nw, mean_bsda, std_bsda, mean_ukhov, std_ukhov)
 
     return (bs_result, nw_result, bsda_result, ukhov_result)
 
@@ -433,10 +403,27 @@ def get_result(code):
             return calculate(warrant)
     print("No such warrant!\n")
 
+def get_all_result():
+    for warrant in WARRANT_LIST:
+        get_result(warrant.code)
+
+    mean_bs = numpy.mean(TOTAL_BS)
+    mean_nw = numpy.mean(TOTAL_NW)
+    mean_bsda = numpy.mean(TOTAL_BSDA)
+    mean_ukhov = numpy.mean(TOTAL_UKHOV)
+    std_bs = numpy.std(TOTAL_BS)
+    std_nw = numpy.std(TOTAL_NW)
+    std_bsda = numpy.std(TOTAL_BSDA)
+    std_ukhov = numpy.std(TOTAL_UKHOV)
+
+    print("All", len(TOTAL_BS),
+          mean_bs, std_bs, mean_nw, std_nw, mean_bsda, std_bsda, mean_ukhov, std_ukhov)
+
 if __name__ == '__main__':
     input_all()
     #get_result('031005')
+    get_all_result()
     #calculate_sigma(WARRANT_LIST)
-    classify(WARRANT_LIST)
-    print(classify_result())
+    #classify(WARRANT_LIST)
+    #print(classify_result())
     #print(convergence())
