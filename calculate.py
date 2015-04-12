@@ -9,6 +9,25 @@ TOTAL_NW = []
 TOTAL_BSDA = []
 TOTAL_UKHOV = []
 
+f_bs_all = open('reg_data/bs_all.txt', 'w')
+f_nw_all = open('reg_data/nw_all.txt', 'w')
+f_bsda_all = open('reg_data/bsda_all.txt', 'w')
+f_ukhov_all = open('reg_data/ukhov_all.txt', 'w')
+
+f_bs_in = open('reg_data/bs_in.txt', 'w')
+f_nw_in = open('reg_data/nw_in.txt', 'w')
+f_bsda_in = open('reg_data/bsda_in.txt', 'w')
+f_ukhov_in = open('reg_data/ukhov_in.txt', 'w')
+f_bs_out = open('reg_data/bs_out.txt', 'w')
+f_nw_out = open('reg_data/nw_out.txt', 'w')
+f_bsda_out = open('reg_data/bsda_out.txt', 'w')
+f_ukhov_out = open('reg_data/ukhov_out.txt', 'w')
+f_bs_at = open('reg_data/bs_at.txt', 'w')
+f_nw_at = open('reg_data/nw_at.txt', 'w')
+f_bsda_at = open('reg_data/bsda_at.txt', 'w')
+f_ukhov_at = open('reg_data/ukhov_at.txt', 'w')
+
+
 def stock_cmp(stock1, stock2):
     return (stock1["Date"] - stock2["Date"]).days < 0
 
@@ -296,10 +315,10 @@ def calculate(warrant):
     avg_nw = []
     avg_ukhov = []
 
-    f_bs = open('reg_data_bs_{}.txt'.format(warrant.code), 'w')
-    f_nw = open('reg_data_nw_{}.txt'.format(warrant.code), 'w')
-    f_bsda = open('reg_data_bsda_{}.txt'.format(warrant.code), 'w')
-    f_ukhov = open('reg_data_ukhov_{}.txt'.format(warrant.code), 'w')
+    f_bs = open('reg_data/bs_{}.txt'.format(warrant.code), 'w')
+    f_nw = open('reg_data/nw_{}.txt'.format(warrant.code), 'w')
+    f_bsda = open('reg_data/bsda_{}.txt'.format(warrant.code), 'w')
+    f_ukhov = open('reg_data/ukhov_{}.txt'.format(warrant.code), 'w')
 
     # get the data that match the date
     stock_match = []
@@ -338,11 +357,31 @@ def calculate(warrant):
 
         for warrant_r in warrant.everyday_price:
             if (tempp["Date"] - warrant_r["Date"]).days == 0:
+                s_k = stock_match[i]['price'] / (warrant.price * math.exp(-R * t))
                 avg_bs.append(abs(tempp["price"] - warrant_r["price"]) / warrant_r["price"])
                 f_bs.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
                            sigma,
-                           stock_match[i]['price'] / (warrant.price * math.exp(-R * t)),
-                           t))
+                           s_k,
+                           t * 1.0 / 365.0))
+                f_bs_all.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
+                if s_k >= 1.1:
+                    f_bs_in.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
+                elif s_k < 0.9:
+                    f_bs_out.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
+                else:
+                    f_bs_at.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
 
         # calculate the NW model
         m = warrant.amount
@@ -358,11 +397,31 @@ def calculate(warrant):
 
         for warrant_r in warrant.everyday_price:
             if (tempp["Date"] - warrant_r["Date"]).days == 0:
+                s_k = stock_match[i]['price'] / (warrant.price * math.exp(-R * t))
                 avg_nw.append(abs(tempp["price"] - warrant_r["price"]) / warrant_r["price"])
                 f_nw.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
                            sigma,
-                           stock_match[i]['price'] / (warrant.price * math.exp(-R * t)),
-                           t))
+                           s_k,
+                           t * 1.0 / 365.0))
+                f_nw_all.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
+                if s_k >= 1.1:
+                    f_nw_in.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
+                elif s_k < 0.9:
+                    f_nw_out.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
+                else:
+                    f_nw_at.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
 
         # calculate the BSDA model result
         if warrant.species == "C":
@@ -375,11 +434,31 @@ def calculate(warrant):
 
         for warrant_r in warrant.everyday_price:
             if (tempp["Date"] - warrant_r["Date"]).days == 0:
+                s_k = stock_match[i]['price'] / (warrant.price * math.exp(-R * t))
                 avg_bsda.append(abs(tempp["price"] - warrant_r["price"]) / warrant_r["price"])
                 f_bsda.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
                            sigma,
-                           stock_match[i]['price'] / (warrant.price * math.exp(-R * t)),
-                           t))
+                           s_k,
+                           t * 1.0 / 365.0))
+                f_bsda_all.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
+                if s_k >= 1.1:
+                    f_bsda_in.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
+                elif s_k < 0.9:
+                    f_bsda_out.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
+                else:
+                    f_bsda_at.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
 
         #calculate the Ukhov model result
         if warrant.species == "C":
@@ -392,11 +471,31 @@ def calculate(warrant):
 
         for warrant_r in warrant.everyday_price:
             if (tempp["Date"] - warrant_r["Date"]).days == 0:
+                s_k = stock_match[i]['price'] / (warrant.price * math.exp(-R * t))
                 avg_ukhov.append(abs(tempp["price"] - warrant_r["price"]) / warrant_r["price"])
                 f_ukhov.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
                            sigma,
-                           stock_match[i]['price'] / (warrant.price * math.exp(-R * t)),
-                           t))
+                           s_k,
+                           t * 1.0 / 365.0))
+                f_ukhov_all.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
+                if s_k >= 1.1:
+                    f_ukhov_in.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
+                elif s_k < 0.9:
+                    f_ukhov_out.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
+                else:
+                    f_ukhov_at.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                           sigma,
+                           s_k,
+                           t * 1.0 / 365.0))
 
     TOTAL_BS.extend(avg_bs)
     TOTAL_NW.extend(avg_nw)
@@ -413,8 +512,8 @@ def calculate(warrant):
     std_bsda = numpy.std(avg_bsda)
     std_ukhov = numpy.std(avg_ukhov)
 
-    print(warrant.code, len(warrant.everyday_price),
-          mean_bs, std_bs, mean_nw, std_nw, mean_bsda, std_bsda, mean_ukhov, std_ukhov)
+    print('{}& {}& {}& {}& {}& {}& {}& {}& {}'.format(warrant.code, len(warrant.everyday_price),
+          mean_bs, std_bs, mean_nw, std_nw, mean_bsda, std_bsda, mean_ukhov, std_ukhov))
 
     f_bs.close()
     f_nw.close()
@@ -445,11 +544,30 @@ def get_all_result():
     print("All", len(TOTAL_BS),
           mean_bs, std_bs, mean_nw, std_nw, mean_bsda, std_bsda, mean_ukhov, std_ukhov)
 
+
 if __name__ == '__main__':
     input_all()
-    get_result('031001')
-    #get_all_result()
+    #get_result('031001')
+    get_all_result()
     #calculate_sigma(WARRANT_LIST)
     #classify(WARRANT_LIST)
     #print(classify_result())
     #print(convergence())
+    f_bs_all.close()
+    f_nw_all.close()
+    f_bsda_all.close()
+    f_ukhov_all.close()
+    f_bs_in.close()
+    f_nw_in.close()
+    f_bsda_in.close()
+    f_ukhov_in.close()
+    f_bs_out.close()
+    f_nw_out.close()
+    f_bsda_out.close()
+    f_ukhov_out.close()
+    f_bs_at.close()
+    f_nw_at.close()
+    f_bsda_at.close()
+    f_ukhov_at.close()
+
+
