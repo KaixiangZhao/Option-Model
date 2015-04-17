@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import pylab
 import numpy
 import math
 import scipy.stats
-from calculate import WARRANT_LIST, calculate, input_all, stock_sort, R
+from calculate import WARRANT_LIST, calculate, input_all, stock_sort, R, sub_ukhov, ukhov
 
 def plot(warrant, bs_result, nw_result, bsda_result, ukhov_result):
     bs_plot = []
@@ -95,8 +96,50 @@ def plot_sigma(warrant):
     plt.plot(sigma_list, result_list)
     plt.show()
 
+def ukhov_plot():
+    w, d1, v_list, sig_list = ukhov(17.5, 7.0, 361, 8.09e-05, 0, 50000000.0,
+                                    149522567.0, 0.0350827369223, 1.0)
+    v_list.remove(v_list[0])
+    v_list.remove(v_list[0])
+    v_list.remove(v_list[0])
+    v_list.remove(v_list[0])
+    sig_list.remove(sig_list[0])
+    sig_list.remove(sig_list[0])
+    sig_list.remove(sig_list[0])
+    sig_list.remove(sig_list[0])
+    n = 256
+    v = numpy.linspace(0.5*17.5*149522567 , 1.5*17.5*149522567, n)
+    sig = numpy.linspace(0, 0.5, n)
+    X, Y = numpy.meshgrid(v, sig)
+    pylab.contourf(X, Y,
+                   ((abs(sub_ukhov(17.5, 7.0, 361, 8.09e-05, 0, 50000000.0,
+                             149522567.0, 0.0350827369223, 1.0, X, Y)[0]["V"] - X))/X)**2 +
+                   abs(sub_ukhov(17.5, 7.0, 361, 8.09e-05, 0, 50000000.0,
+                             149522567.0, 0.0350827369223, 1.0, X, Y)[0]["sig"] - Y)**2,
+                   50, alpha=.75, cmap='jet')
+    C = pylab.contour(X, Y,
+                      ((abs(sub_ukhov(17.5, 7.0, 361, 8.09e-05, 0, 50000000.0,
+                             149522567.0, 0.0350827369223, 1.0, X, Y)[0]["V"] - X))/X)**2 +
+                      abs(sub_ukhov(17.5, 7.0, 361, 8.09e-05, 0, 50000000.0,
+                             149522567.0, 0.0350827369223, 1.0, X, Y)[0]["sig"] - Y)**2,
+                      50, colors='black', linewidth=.5)
+    #pylab.scatter(v_list, sig_list, s=100, alpha=.75, marker=(5,2), c='black')
+    pylab.clabel(C, inline=1, fontsize=10)
+    pylab.show()
+
+    # pylab.contourf(X, Y,
+    #                abs(sub_ukhov(17.5, 7.0, 361, 8.09e-05, 0, 50000000.0,
+    #                          149522567.0, 0.0350827369223, 1.0, X, Y)[0]["sig"] - Y),
+    #                20, alpha=.75, cmap='jet')
+    # CC = pylab.contour(X, Y,
+    #                   abs(sub_ukhov(17.5, 7.0, 361, 8.09e-05, 0, 50000000.0,
+    #                          149522567.0, 0.0350827369223, 1.0, X, Y)[0]["sig"] - Y),
+    #                   20, colors='black', linewidth=.5)
+    # pylab.clabel(CC, inline=1, fontsize=10)
+    # pylab.show()
 
 if __name__ == '__main__':
     input_all()
-    get_plot('031005')
+    get_plot('031001')
     #plot_sigma(WARRANT_LIST[0])
+    #ukhov_plot()

@@ -282,29 +282,37 @@ def sub_ukhov(s, x, t, r, d, ns, nw, sigstar, gama, v, sig):
     return (temp, d_1)
 
 def ukhov(s, x, t, r, d, ns, nw, sigstar, gama):
+    v_list = []
+    sig_list = []
     v_old = 0
     sig_old = 0
     temp, d1 = sub_ukhov(s, x, t, r, d, ns, nw, sigstar, gama, v_old, sig_old)
     y_old = v_old - temp["V"]
+    yy_old = sig_old - temp["sig"]
 
-    v = 1
-    sig = 1
+    v = ns * s
+    sig = sigstar
     temp, d1 = sub_ukhov(s, x, t, r, d, ns, nw, sigstar, gama, v, sig)
     y = v - temp["V"]
+    yy = sig - temp["sig"]
 
-    while abs(y) / v >= 1e-8:
+    while abs(y) / v >= 1e-8 or abs(yy) / sig >= 1e-8:
         v_temp = v
         sig_temp = sig
         v = v - y * (v - v_old) / (y - y_old)
-        sig = sig - y * (sig - sig_old) / (y - y_old)
+        sig = sig - yy * (sig - sig_old) / (yy - yy_old)
         y_old = y
+        yy_old = yy
         temp, d1 = sub_ukhov(s, x, t, r, d, ns, nw, sigstar, gama, v, sig)
+        v_list.append(temp["V"])
+        sig_list.append(temp["sig"])
         y = v - temp["V"]
+        yy = sig - temp["sig"]
         v_old = v_temp
         sig_old = sig_temp
 
     w = (v - s * ns) / nw
-    return (w, scipy.stats.norm.cdf(d1))
+    return (w, scipy.stats.norm.cdf(d1), v_list, sig_list)
 
 def calculate(warrant):
     bs_result = []
@@ -338,6 +346,7 @@ def calculate(warrant):
             start_node = i
             break
 
+    first = True
     for i in range(start_node + 1, len(stock_match)):
         sigma = get_sigma(i, start_node, stock_match)
         #sigma = get_sigma_impldvol(i, stock_match, warrant)
@@ -470,8 +479,9 @@ def calculate(warrant):
 
         #calculate the Ukhov model result
         if warrant.species == "C":
-            result, d1 = ukhov(stock_match[i]["price"], warrant.price,
-                           t, R, 0, n, m, sigma, y)
+            result, d1, v_list, sig_list = ukhov(stock_match[i]["price"], warrant.price,
+                                                 t, R, 0, n, m, sigma, y)
+            print('v: %.3f, sig: %.3f' % (v_list[-1], sig_list[-1]))
             tempp = {}
             tempp["price"] = result
             tempp["Date"] = stock_match[i]["Date"]
@@ -481,31 +491,34 @@ def calculate(warrant):
         for warrant_r in warrant.everyday_price:
             if (tempp["Date"] - warrant_r["Date"]).days == 0:
                 s_k = stock_match[i]['price'] / (warrant.price * math.exp(-R * t))
-                avg_ukhov.append(abs(tempp["price"] - warrant_r["price"]) / warrant_r["price"])
-                f_ukhov.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
-                           sigma,
-                           s_k,
-                           t * 1.0 / 365.0))
-                f_ukhov_all.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
-                           sigma,
-                           s_k,
-                           t * 1.0 / 365.0))
-                if s_k >= 1.1:
-                    f_ukhov_in.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
-                           sigma,
-                           s_k,
-                           t * 1.0 / 365.0))
-                elif s_k < 0.9:
-                    f_ukhov_out.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
-                           sigma,
-                           s_k,
-                           t * 1.0 / 365.0))
-                else:
-                    f_ukhov_at.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
-                           sigma,
-                           s_k,
-                           t * 1.0 / 365.0))
-                break
+                if numpy.isnan(result) == False:
+                    if first:
+                        first = False
+                    else:
+                        avg_ukhov.append(abs(tempp["price"] - warrant_r["price"]) / warrant_r["price"])
+                        f_ukhov.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                                                             sigma,
+                                                             s_k,
+                                                             t * 1.0 / 365.0))
+                        f_ukhov_all.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                                                                 sigma,
+                                                                 s_k,
+                                                                 t * 1.0 / 365.0))
+                        if s_k >= 1.1:
+                            f_ukhov_in.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                                                                    sigma,
+                                                                    s_k,
+                                                                    t * 1.0 / 365.0))
+                        elif s_k < 0.9:
+                            f_ukhov_out.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                                                                     sigma,
+                                                                     s_k,
+                                                                     t * 1.0 / 365.0))
+                        else:
+                            f_ukhov_at.write('{} {} {} {}\n'.format((tempp["price"] - warrant_r["price"]) / warrant_r["price"],
+                                                                    sigma,
+                                                                    s_k,
+                                                                    t * 1.0 / 365.0))
 
     TOTAL_BS.extend(avg_bs)
     TOTAL_NW.extend(avg_nw)
@@ -522,9 +535,12 @@ def calculate(warrant):
     std_bsda = numpy.std(avg_bsda)
     std_ukhov = numpy.std(avg_ukhov)
 
-    # print('%s & %d & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f \\\\ \\hline' %
-    #       (warrant.code, len(warrant.everyday_price),
-    #        mean_bs, std_bs, mean_nw, std_nw, mean_bsda, std_bsda, mean_ukhov, std_ukhov))
+    #print('%s & %d & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f \\\\' %
+    #      (warrant.code, len(warrant.everyday_price),
+    #       mean_bs, std_bs, mean_nw, std_nw, mean_bsda, std_bsda, mean_ukhov, std_ukhov))
+
+    #print(warrant.code, len(warrant.everyday_price),
+    #      mean_bs, std_bs, mean_nw, std_nw, mean_bsda, std_bsda, mean_ukhov, std_ukhov)
 
     f_bs.close()
     f_nw.close()
@@ -551,6 +567,7 @@ def hedge(warrant, k=1):
             stock_match.append(day)
     stock_sort(stock_match)
 
+    first = True
     for i in range(int((len(warrant.everyday_price) - 1) / k)):
         x_s = bs_result[i * k]["d1"]
         x_0 = warrant.everyday_price[(i + 1) * k]["price"] - x_s * stock_match[i * k]["price"]
@@ -560,23 +577,26 @@ def hedge(warrant, k=1):
 
         x_s = nw_result[i * k]["d1"]
         x_0 = warrant.everyday_price[(i + 1) * k]["price"] - x_s * stock_match[i * k]["price"]
-        h_nw = x_s * stock_match[(i + 1) * k]["price"] + x_0 * math.exp(R) - bs_result[(i + 1) * k]["price"]
+        h_nw = x_s * stock_match[(i + 1) * k]["price"] + x_0 * math.exp(R) - nw_result[(i + 1) * k]["price"]
         hedge_nw.append(h_nw)
         hedge_nw_abs.append(abs(h_nw))
 
         x_s = bsda_result[i * k]["d1"]
         x_0 = warrant.everyday_price[(i + 1) * k]["price"] - x_s * stock_match[i * k]["price"]
-        h_bsda = x_s * stock_match[(i + 1) * k]["price"] + x_0 * math.exp(R) - bs_result[(i + 1) * k]["price"]
+        h_bsda = x_s * stock_match[(i + 1) * k]["price"] + x_0 * math.exp(R) - bsda_result[(i + 1) * k]["price"]
         hedge_bsda.append(h_bsda)
         hedge_bsda_abs.append(abs(h_bsda))
 
-        x_s = ukhov_result[i * k]["d1"]
-        x_0 = warrant.everyday_price[(i + 1) * k]["price"] - x_s * stock_match[i * k]["price"]
-        h_ukhov = x_s * stock_match[(i + 1) * k]["price"] + x_0 * math.exp(R) - bs_result[(i + 1) * k]["price"]
-        hedge_ukhov.append(h_ukhov)
-        hedge_ukhov_abs.append(abs(h_ukhov))
-
-    print('%s %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f' %
+        if numpy.isnan(ukhov_result[(i + 1) * k]["price"]) == False and numpy.isnan(ukhov_result[i * k]["d1"]) == False:
+            if first:
+                first = False
+            else:
+                x_s = ukhov_result[i * k]["d1"]
+                x_0 = warrant.everyday_price[(i + 1) * k]["price"] - x_s * stock_match[i * k]["price"]
+                h_ukhov = x_s * stock_match[(i + 1) * k]["price"] + x_0 * math.exp(R) - ukhov_result[(i + 1) * k]["price"]
+                hedge_ukhov.append(h_ukhov)
+                hedge_ukhov_abs.append(abs(h_ukhov))
+    print('%s & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f \\\\' %
           (warrant.code, numpy.mean(hedge_bs), numpy.mean(hedge_nw), numpy.mean(hedge_bsda), numpy.mean(hedge_ukhov),
           numpy.mean(hedge_bs_abs), numpy.mean(hedge_nw_abs), numpy.mean(hedge_bsda_abs), numpy.mean(hedge_ukhov_abs)))
 
@@ -603,15 +623,15 @@ def get_all_result():
     std_bsda = numpy.std(TOTAL_BSDA)
     std_ukhov = numpy.std(TOTAL_UKHOV)
 
-    print('%s & %d & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f \\\\ \\hline' %
+    print('%s & %d & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f & %.2f \\\\' %
           ("All", len(TOTAL_BS), mean_bs, std_bs, mean_nw, std_nw, mean_bsda, std_bsda, mean_ukhov, std_ukhov))
 
 
 if __name__ == '__main__':
     input_all()
-    #get_result('031001')
+    get_result('031001')
     #get_all_result()
-    hedge_all(5)
+    #hedge_all(5)
     #calculate_sigma(WARRANT_LIST)
     #classify(WARRANT_LIST)
     #print(classify_result())
